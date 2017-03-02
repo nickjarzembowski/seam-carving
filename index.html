@@ -15,8 +15,8 @@
   </style>
   <div id="container">
     <p>Original</p>
-    <p>Vertical gradients</p>
     <p>Horizontal gradients</p>
+    <p>Vertical gradients</p>
     <p>Seams</p>
   </div>
   <div id="container">
@@ -28,16 +28,25 @@
 </body>
 <script>
 
-  var canvas = document.getElementById('canvas'); // main canvas
+  // canvas containing the original image with seams removed
+  var canvas = document.getElementById('canvas');
   var ctx = canvas.getContext('2d');
-  var canvas_extra = document.getElementById('canvas_extra'); // gradient canvas
-  var ctx_extra = canvas_extra.getContext('2d');
-  var canvas_seam = document.getElementById('canvas_seam'); // canvas with img and seams
-  var ctx_seam = canvas_seam.getContext('2d');
 
+  // canvas containing the horizontal gradients of the img in canvas
+  var canvas_extra = document.getElementById('canvas_extra');
+  var ctx_extra = canvas_extra.getContext('2d');
+
+  // canvas containing the vertical gradients of the img in canvas
   var canvas_h_grad = document.getElementById('canvas_h_grad');
   var ctx_h_grad = canvas_h_grad.getContext('2d');
   canvas.style.backgroundColor = 'rgba(158, 167, 184, 255)';
+
+  // canvas containing the seams found after each iteration
+  var canvas_seam = document.getElementById('canvas_seam');
+  var ctx_seam = canvas_seam.getContext('2d');
+
+
+
 
   window.onload = function(){
     IMG_LOADED = false;
@@ -281,78 +290,105 @@
     }
     ctx_seam.putImageData(imgData,0,0);
 
-    /** Horizontal Gradient **/
-
-    // sum horizontal gradients
-    horizontal_fitness = new Array(height)
-    for (var i = 0; i < height; i++) {
-      horizontal_fitness[i] = new Array(width)
-    }
-    for (var y = 0; y < height; y++) {
-      horizontal_fitness[0][y] = grad_horizontal[0][y]
-    }
-    for (x = 1; x < width; x++) {
-      for (y = 0; y < height; y++) {
-        horizontal_fitness[x][y] = grad_horizontal[x][y]
-        if (y == 0) {
-          horizontal_fitness[x][y] += Math.min(horizontal_fitness[x-1][y], horizontal_fitness[x-1][y+1]);
-        } else if (y == height-1) {
-          horizontal_fitness[x][y] += Math.min(horizontal_fitness[x-1][y], horizontal_fitness[x-1][y-1]);
-        } else {
-          horizontal_fitness[x][y] += Math.min(horizontal_fitness[x-1][y], horizontal_fitness[x-1][y+1], horizontal_fitness[x-1][y-1]);
-        }
-      }
-    }
-
-    // find horizontal seam with minimum total gradient
-    var best = 0
-    for (var y = 0; y < height; y++) {
-      best = (horizontal_fitness[width-1][y] < horizontal_fitness[width-1][best]) ? y : best
-    }
-    horizontal_seam = Array.apply(null, new Array(width)).map(Number.prototype.valueOf,0)
-    horizontal_seam = new Array()
-    horizontal_seam[0] = [width-1,best]
-    for (x = width-1; x >= 0; x--) {
-     left = (best == 0) ? best : (best-1);
-     right = (best == height-1) ? best : (best+1);
-     forward = (x == 0) ? x : (x-1);
-     l = horizontal_fitness[forward][left]
-     r = horizontal_fitness[forward][right]
-     f = horizontal_fitness[forward][best]
-     best = (l < r) ? ( (l < f) ? left : best ) : right
-     horizontal_seam.push([x,best])
-    }
-
-    // draw minimum horizontal seam
-    imgData = ctx_seam.getImageData(0,0,ctx_seam.canvas.width,ctx_seam.canvas.height);
-    for (var i=0; i<horizontal_seam.length; i++) {
-     x = horizontal_seam[i][0]
-     y = horizontal_seam[i][1]
-     z = (x*4 + y*4 * ctx.canvas.width)
-     imgData.data[z+0]=255;
-     imgData.data[z+1]=0;
-     imgData.data[z+2]=0;
-     imgData.data[z+3]=255;
-    }
-    ctx_seam.putImageData(imgData,0,0);
-
-    // remove seam from orignal img
+    // remove vertical seam from orignal img
     image_data = ctx.getImageData(0,0,ctx.canvas.width,ctx.canvas.height);
     new_image = ctx.createImageData(ctx.canvas.width,ctx.canvas.height);
     for (y = 0; y<height; y++) {
       x_offset = 0;
       for (x = 0; x<width-1; x++) {
         if (seam[y][0] == x) x_offset = 1
-        z = (x*4 + (height-1-y)*4 * ctx.canvas.width)
-        zz = ((x+x_offset)*4 + (height-1-y)*4 * ctx.canvas.width)
-        new_image.data[z+0]=image_data.data[zz];
-        new_image.data[z+1]=image_data.data[zz+1];
-        new_image.data[z+2]=image_data.data[zz+2];
-        new_image.data[z+3]=image_data.data[zz+3];
+        new_image_idx = (x*4 + (height-1-y)*4 * ctx.canvas.width) // rotate the seam
+        old_image_idx = ((x+x_offset)*4 + (height-1-y)*4 * ctx.canvas.width)
+        new_image.data[new_image_idx+0]=image_data.data[old_image_idx];
+        new_image.data[new_image_idx+1]=image_data.data[old_image_idx+1];
+        new_image.data[new_image_idx+2]=image_data.data[old_image_idx+2];
+        new_image.data[new_image_idx+3]=image_data.data[old_image_idx+3];
       }
     }
     ctx.canvas.width = ctx.canvas.width-1;
-    ctx.canvas.height = ctx.canvas.height-1;
+    ctx.putImageData(new_image,0,0);
+
+
+    /** Horizontal Gradient **/
+    // height = imgData.height;
+    // width = imgData.width;
+
+    // // sum horizontal gradients
+    // horizontal_fitness = new Array(height)
+    // for (var i = 0; i < height; i++) {
+    //   horizontal_fitness[i] = new Array(width)
+    // }
+    // for (var y = 0; y < height; y++) {
+    //   horizontal_fitness[0][y] = grad_horizontal[0][y]
+    // }
+    // for (x = 1; x < width; x++) {
+    //   for (y = 0; y < height; y++) {
+    //     horizontal_fitness[x][y] = grad_horizontal[x][y]
+    //     if (y == 0) {
+    //       horizontal_fitness[x][y] += Math.min(horizontal_fitness[x-1][y], horizontal_fitness[x-1][y+1]);
+    //     } else if (y == height-1) {
+    //       horizontal_fitness[x][y] += Math.min(horizontal_fitness[x-1][y], horizontal_fitness[x-1][y-1]);
+    //     } else {
+    //       horizontal_fitness[x][y] += Math.min(horizontal_fitness[x-1][y], horizontal_fitness[x-1][y+1], horizontal_fitness[x-1][y-1]);
+    //     }
+    //   }
+    // }
+    //
+    // // find horizontal seam with minimum total gradient
+    // var best = 0
+    // for (var y = 0; y < height; y++) {
+    //   best = (horizontal_fitness[width-1][y] < horizontal_fitness[width-1][best]) ? y : best
+    // }
+    // horizontal_seam = Array.apply(null, new Array(width)).map(Number.prototype.valueOf,0)
+    // horizontal_seam = new Array()
+    // horizontal_seam[0] = [width-1,best]
+    // for (x = width-1; x >= 0; x--) {
+    //  left = (best == 0) ? best : (best-1);
+    //  right = (best == height-1) ? best : (best+1);
+    //  forward = (x == 0) ? x : (x-1);
+    //  l = horizontal_fitness[forward][left]
+    //  r = horizontal_fitness[forward][right]
+    //  f = horizontal_fitness[forward][best]
+    //  best = (l < r) ? ( (l < f) ? left : best ) : right
+    //  horizontal_seam.push([x,best])
+    // }
+    //
+    // // draw minimum horizontal seam
+    // imgData = ctx_seam.getImageData(0,0,ctx_seam.canvas.width,ctx_seam.canvas.height);
+    // for (var i=0; i<horizontal_seam.length; i++) {
+    //  x = horizontal_seam[i][0]
+    //  y = horizontal_seam[i][1]
+    //  z = (x*4 + y*4 * ctx.canvas.width)
+    //  imgData.data[z+0]=255;
+    //  imgData.data[z+1]=0;
+    //  imgData.data[z+2]=0;
+    //  imgData.data[z+3]=255;
+    // }
+    // ctx_seam.putImageData(imgData,0,0);
+
+    // draw minimum horizontal seam
+    // image_data = ctx.getImageData(0,0,ctx.canvas.width,ctx.canvas.height);
+    // new_image = ctx.createImageData(ctx.canvas.width,ctx.canvas.height);
+    // for (x = 0; x<width; x++) {
+    //   y_offset = 0
+    //   for (y = 0; y<height-1; y++) {
+    //     if (horizontal_seam[x][1] == y) {
+    //       y_offset = 1
+    //       idx = (width-1-x)*4 + y*4 * ctx.canvas.width
+    //       new_image.data[idx+0]=255
+    //       new_image.data[idx+1]=0
+    //       new_image.data[idx+2]=0
+    //       new_image.data[idx+3]=255
+    //     }
+    //     idx = (width-1-x)*4 + y*4 * ctx.canvas.width
+    //     idx2 = (width-1-x)*4 + (y+y_offset)*4 * ctx.canvas.width
+    //     new_image.data[idx+0]=image_data.data[idx2];
+    //     new_image.data[idx+1]=image_data.data[idx2+1];
+    //     new_image.data[idx+2]=image_data.data[idx2+2];
+    //     new_image.data[idx+3]=image_data.data[idx2+3];
+    //   }
+    // }
+        // ctx.canvas.height = ctx.canvas.height-1;
     ctx.putImageData(new_image,0,0);
 
 
