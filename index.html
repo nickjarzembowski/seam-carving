@@ -27,6 +27,8 @@
     var canvas_seam = document.getElementById('canvas_seam'); // canvas with img and seams
     var ctx_seam = canvas_seam.getContext('2d');
 
+    canvas.style.backgroundColor = 'rgba(158, 167, 184, 255)';
+
     // load image
     var img = new Image();
     img.src = './p2.png';
@@ -50,6 +52,20 @@
 
       if (e.keyCode == 104){
         timer.begin()
+
+        image_data = ctx.getImageData(0,0,ctx.canvas.width,ctx.canvas.height);
+        height = image_data.height;
+        width = image_data.width;
+
+        ctx.canvas.width = width;
+        ctx.canvas.height = height;
+        ctx_extra.canvas.width = width;
+        ctx_extra.canvas.height = height;
+        ctx_seam.canvas.width = width;
+        ctx_seam.canvas.height = height;
+
+        ctx.putImageData(image_data,0,0);
+        ctx_seam.putImageData(image_data,0,0);
 
         // compute horizontal gradients
         var grad = new Array(width)
@@ -174,7 +190,6 @@
       ctx_seam.putImageData(imgData,0,0);
 
       // remove seam from orignal img
-      canvas.style.backgroundColor = 'rgba(158, 167, 184, 255)';
       image_data = ctx.getImageData(0,0,ctx.canvas.width,ctx.canvas.height);
       new_image = ctx.createImageData(ctx.canvas.width,ctx.canvas.height);
       for (y = 0; y<height; y++) {
@@ -190,7 +205,7 @@
         }
       }
       ctx.canvas.width = ctx.canvas.width-1;
-      ctx.putImageData(new_image,0,0)
+      ctx.putImageData(new_image,0,0);
 
       // ctx_extra.canvas.width = ctx.canvas.width;
       // ctx_seam.canvas.width = ctx.canvas.width;
