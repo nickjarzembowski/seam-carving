@@ -6,13 +6,19 @@
       padding:0
     }
     canvas {
-      float:left;
-      width:25vw;
+      display:inline-block;
+      width:20vw;
+    }
+    #container {
+      text-align:center;
     }
   </style>
-  <canvas id="canvas"></canvas>
-  <canvas id="canvas_extra"></canvas>
-  <canvas id="canvas_seam"></canvas>
+  <div id="container">
+    <canvas id="canvas"></canvas>
+    <canvas id="canvas_extra"></canvas>
+    <canvas id="canvas_h_grad"></canvas>
+    <canvas id="canvas_seam"></canvas>
+  </div>
 </body>
 <script>
 
@@ -22,6 +28,9 @@
   var ctx_extra = canvas_extra.getContext('2d');
   var canvas_seam = document.getElementById('canvas_seam'); // canvas with img and seams
   var ctx_seam = canvas_seam.getContext('2d');
+
+  var canvas_h_grad = document.getElementById('canvas_h_grad');
+  var ctx_h_grad = canvas_h_grad.getContext('2d');
   canvas.style.backgroundColor = 'rgba(158, 167, 184, 255)';
 
   window.onload = function(){
@@ -43,6 +52,10 @@
       height = image_data.height;
       width = image_data.width;
       ctx_seam.putImageData(image_data,0,0);
+      // horizontal
+      ctx_h_grad.canvas.width = img.width
+      ctx_h_grad.canvas.height = img.height;
+
       IMG_LOADED = true;
     }
 
@@ -77,6 +90,9 @@
     ctx_extra.canvas.height = height;
     ctx_seam.canvas.width = width;
     ctx_seam.canvas.height = height;
+
+    ctx_h_grad.canvas.width = width;
+    ctx_h_grad.canvas.height = height;
 
     ctx.putImageData(image_data,0,0);
     ctx_seam.putImageData(image_data,0,0);
@@ -132,7 +148,7 @@
     }
     ctx_extra.putImageData(imgData,0,0);
 
-    // draw img gradients
+    // draw vertical gradients
     imgData = ctx_extra.getImageData(0,0,ctx_extra.canvas.width,ctx_extra.canvas.height);
     for (y = 0; y < height; y++) {
       for (x = 0; x < width; x++) {
@@ -149,6 +165,62 @@
       }
     }
     ctx_extra.putImageData(imgData,0,0);
+
+    // compute horizontal gradients
+    var grad_horizontal = new Array(width)
+    for (i = 0; i < width; i++){
+      grad_horizontal[i] = new Array(height)
+    }
+    for (x = 0; x < nWidth; x+=4) {
+      for (y = 0; y < nHeight; y+=4) {
+
+        idx = x + y * width
+
+        center_r = image_data.data[idx]
+        center_g = image_data.data[idx+1]
+        center_b = image_data.data[idx+2]
+        center_a = image_data.data[idx+3]
+
+        up = (y == 0 ? idx : ( x + (y-4) * width))
+        down = (y == nHeight-1 ? idx : ( x + (y+4) * width))
+
+        up_r = image_data.data[up]
+        up_g = image_data.data[up+1]
+        up_b = image_data.data[up+2]
+        up_a = image_data.data[up+3]
+
+        down_r = image_data.data[down]
+        down_g = image_data.data[down+1]
+        down_b = image_data.data[down+2]
+        down_a = image_data.data[down+3]
+
+        r = up_r - down_r;
+        g = up_g - down_g;
+        b = up_b - down_b;
+
+        distance = Math.sqrt(r*r + g*g + b*b);
+
+        grad_horizontal[x/4][y/4] = distance
+      }
+    }
+
+    // draw horizontal gradients
+    imgData = ctx_h_grad.createImageData(ctx_h_grad.canvas.width,ctx_h_grad.canvas.height);
+    for (x = 0; x < width; x++) {
+      for (y = 0; y < height; y++) {
+        n = grad_horizontal[x][y];
+        r = n >> 24 & 255;
+        g = n >> 16 & 255;
+        b = n >> 8 & 255;
+        a = n >> 0 & 255;
+        i = (x*4 + y*4 * width)
+        imgData.data[i]=r;
+        imgData.data[i+1]=g;
+        imgData.data[i+2]=b;
+        imgData.data[i+3]=a;
+      }
+    }
+    ctx_h_grad.putImageData(imgData,0,0);
 
     // compute gradient summed vertical gradients
     vertical_fitness = new Array(width)
@@ -219,7 +291,9 @@
       }
     }
     ctx.canvas.width = ctx.canvas.width-1;
+    ctx.canvas.height = ctx.canvas.height-1;
     ctx.putImageData(new_image,0,0);
+
 
     // total execution time
     timer.end()
