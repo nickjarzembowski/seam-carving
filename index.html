@@ -356,9 +356,9 @@
     for (x = width-1; x >= 0; x--) {
       left = (best == height-1) ? best : (best-1);
       right = (best == 0) ? best : (best+1);
-      l = vertical_fitness[x][left]
-      r = vertical_fitness[x][right]
-      f = vertical_fitness[x][best]
+      l = horizontal_fitness[x][left]
+      r = horizontal_fitness[x][right]
+      f = horizontal_fitness[x][best]
       best = (l < r) ? ( (l < f) ? left : best ) : right
       seam.push([x,best])
     }
@@ -397,60 +397,6 @@
     ctx_extra.putImageData(gradient_image,0,0);
     // Draw the seam image
     ctx_seam.putImageData(seam_image,0,0);
-
-    // // Resize the canvas width by one
-    // // The column lost is the discarded pixels
-    // ctx.canvas.width = ctx.canvas.width-1;
-    // ctx.canvas.height = ctx.canvas.height-1;
-    //
-    // ctx_extra.canvas.width = ctx.canvas.width;
-    // ctx_seam.canvas.width = ctx.canvas.width;
-    //
-    // // Draw the image with the seam removed.
-    // // ctx.putImageData(new_image,0,0);
-    // ctx.putImageData(seam_remove,0,0);
-    // // Draw gradient image
-    // ctx_extra.putImageData(gradient_image,0,0);
-    // // Draw the seam image
-    // ctx_seam.putImageData(seam_image,0,0);
-    // seam_remove = ctx.createImageData(ctx.canvas.width,ctx.canvas.height);
-    // for (y = 0; y<height; y++) {
-    //   for (x = width-1; x>=0; x--) {
-    //     if (seam[x][1] == y) {
-    //       idx = (x*4 + (height-1-y)*4 * ctx.canvas.width)
-    //       idx2 = (x*4 + (height-1-y+1)*4 * ctx.canvas.width)
-    //       seam_remove.data[idx] = 255
-    //       seam_remove.data[idx+1] = 0
-    //       seam_remove.data[idx+2] = 0
-    //       seam_remove.data[idx+3] = 255
-    //       seam_remove.data[idx2] = 0
-    //       seam_remove.data[idx2+1] = 0
-    //       seam_remove.data[idx2+2] = 255
-    //       seam_remove.data[idx2+3] = 255
-    //       continue;
-    //     }
-    //     idx = (x*4 + (height-1-y)*4 * ctx.canvas.width)
-    //     seam_remove.data[idx] = new_image.data[idx]
-    //     seam_remove.data[idx+1] = new_image.data[idx+1]
-    //     seam_remove.data[idx+2] = new_image.data[idx+2]
-    //     seam_remove.data[idx+3] = new_image.data[idx+3]
-    //   }
-    // }
-
-    // for (y = 0; y<height; y++) {
-    //   x_offset = 0;
-    //   for (x = 0; x<width; x++) {
-    //     if (seam[x][1] == y) x_offset = 1
-    //     new_image_idx = (x*4 + (height-1-y)*4 * ctx.canvas.width) // rotate the seam
-    //     old_image_idx = ((x)*4 + (height-1-y)*4 * -(y*x_offset) * ctx.canvas.width)
-    //     new_image.data[new_image_idx+0]=image_data.data[old_image_idx];
-    //     new_image.data[new_image_idx+1]=image_data.data[old_image_idx+1];
-    //     new_image.data[new_image_idx+2]=image_data.data[old_image_idx+2];
-    //     new_image.data[new_image_idx+3]=image_data.data[old_image_idx+3];
-    //   }
-    // }
-
-
 
     // total execution time
     timer.end()
