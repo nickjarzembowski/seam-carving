@@ -208,7 +208,6 @@
     }
 
     // Seam array contains the coordinates of the least cost seam
-    seam = Array.apply(null, new Array(height)).map(Number.prototype.valueOf,0)
     seam = new Array()
     seam[0] = [best,y]
     for (y = height-1; y >= 0; y--) {
@@ -349,7 +348,6 @@
     // // best -=1
 
     // Seam array contains the coordinates of the least cost seam
-    seam = Array.apply(null, new Array(width)).map(Number.prototype.valueOf,0)
     seam = new Array()
     seam[0] = [x,best]
 
