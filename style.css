@@ -1,0 +1,28 @@
+body {
+  background:#333
+}
+.outer-container {
+  width:100%;
+  display: inline-block;
+}
+.container {
+  display:inline-block;
+  padding: 10px;
+  /*border:1px solid yellow;*/
+}
+.parent {
+  position: relative;
+  /*border: 1px solid red;*/
+  height:100%;
+}
+canvas {
+  border: 2px solid red;
+  position: absolute;
+  top: 0;
+  left: 0;
+  /*height:100%;
+  width:100%;*/
+}
+#canvas_grad {
+  background:lightgrey
+}
