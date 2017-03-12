@@ -49,7 +49,6 @@
       ctx.canvas.width = width;
       ctx.canvas.height = height;
       ctx.drawImage(img,0,0,width,height);
-
       // set up array for gradient values
       grad = new Array(width)
       for (i = 0; i < width; i++){
@@ -60,7 +59,6 @@
       for (i = 0; i < width; i++){
         pixels_int[i] = new Array(height)
       }
-
       vertical_fitness = new Array(width)
       for (var i = 0; i < width; i++) {
         vertical_fitness[i] = new Array(height)
@@ -113,6 +111,7 @@
       width = image_data.width;
       height = image_data.height;
 
+      // loop over pixels and compute horizontal gradient image using left and right pixels for each center pixel.
       for (var i=0;i<width*height;i++){
         x = i % width;
         y = (i / width) | 0;
@@ -133,12 +132,12 @@
         r = left_r - right_r;
         g = left_g - right_g;
         b = left_b - right_b;
-        grad[x][y] = Math.sqrt(r*r + g*g + b*b);
+        grad[x][y] = Math.sqrt(r*r + g*g + b*b); // contains horizotnal gradient image
         r = image_data.data[idx];
         g = image_data.data[idx+1];
         b = image_data.data[idx+2];
         a = image_data.data[idx+3];
-        pixels_int[x][y]=rgb_to_unit(r,g,b,a);
+        pixels_int[x][y]=rgb_to_unit(r,g,b,a); // contains int pixels
       }
 
       for (var x = 0; x < width; x++) {
@@ -182,19 +181,20 @@
       // indexing the seam is inverted. i.e seam[0] = height-1 coordinate
 
       ctx.canvas.width = ctx.canvas.width-1
-      for (var y=0;y<height;y++){
-        x_offset = 0
-        for (var x=0;x<width;x++){
-          if (seam[height-1-y][0] == x) x_offset = -1;
-          xx = ((x+x_offset)<<2)
-          yy = (y<<2)
-          idx = xx + yy * width;
-          rgba = uint_to_rgb(pixels_int[x][y]);
-          image_data.data[idx] = rgba[0];
-          image_data.data[idx+1] = rgba[1];
-          image_data.data[idx+2] = rgba[2];
-          image_data.data[idx+3] = rgba[3];
-        }
+
+      x_offset = 0
+      for (var i=0;i<width*height;i++){
+        x = i % width;
+        y = (i / width) | 0;
+        x_offset = (seam[height-1-y][0] == x) ? x_offset-1 : x_offset; // shift all upcoming xs left if seam reached
+        x_offset = x==0 ? 0 : x_offset; // reset for each row
+        yy = y << 2;
+        idx = ((x+x_offset) << 2) + yy * width;
+        idx2 = (x << 2) + yy * width;
+        image_data.data[idx] = image_data.data[idx2]
+        image_data.data[idx+1] = image_data.data[idx2+1]
+        image_data.data[idx+2] = image_data.data[idx2+2]
+        image_data.data[idx+3] = image_data.data[idx2+3]
       }
 
       ctx.putImageData(image_data,0,0);
