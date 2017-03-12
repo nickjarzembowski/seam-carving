@@ -1,0 +1,205 @@
+<html>
+<body>
+  <style>
+    * {
+      margin:0;
+      padding:0;
+    }
+    body {
+      background:white
+    }
+    canvas, div {
+      display:inline-block;
+    }
+    #container {
+      text-align:center;
+    }
+  </style>
+  <div id="container">
+    <canvas id="canvas"></canvas>
+  </div>
+</body>
+<script>
+
+  // canvas containing the original image with seams removed
+  var canvas = document.getElementById('canvas');
+  var ctx = canvas.getContext('2d');
+
+  window.onload = function(){
+
+    var BUSY = false;
+    var grad;
+    var pixels_int;
+    var vertical_fitness;
+
+    function rgb_to_unit(r, g, b, a) {
+      return (r << 24) + (g << 16) + (b << 8) + (a << 0);
+    }
+    function uint_to_rgb(uint) {
+      return [uint >> 24 & 255,uint >> 16 & 255,uint >> 8 & 255,uint >> 0 & 255];
+    }
+
+    // load image
+    var img = new Image();
+    img.src = './p1.png';
+    img.crossOrigin = "Anonymous";
+    img.onload = function() {
+      width = img.width;
+      height = img.height;
+      ctx.canvas.width = width;
+      ctx.canvas.height = height;
+      ctx.drawImage(img,0,0,width,height);
+
+      // set up array for gradient values
+      grad = new Array(width)
+      for (i = 0; i < width; i++){
+        grad[i] = new Array(height)
+      }
+      // stores rgba img as int image
+      pixels_int = new Array(width);
+      for (i = 0; i < width; i++){
+        pixels_int[i] = new Array(height)
+      }
+
+      vertical_fitness = new Array(width)
+      for (var i = 0; i < width; i++) {
+        vertical_fitness[i] = new Array(height)
+      }
+    }
+
+    function rgb_to_unit(r, g, b, a) {
+      return (r << 24) + (g << 16) + (b << 8) + (a << 0);
+    }
+    function uint_to_rgb(uint) {
+      return [uint >> 24 & 255,uint >> 16 & 255,uint >> 8 & 255,uint >> 0 & 255];
+    }
+
+    function get_pixels(x,y){
+      // convert pixels to canvas idx
+      idx = x*4 + y*4 * width;
+      // get left and right pixels
+      left = (x*4 == 0 ? idx : idx-4);
+      right = (x*4 == width*4-4 ? idx : idx+4);
+      left_r = image_data.data[left]
+      left_g = image_data.data[left+1]
+      left_b = image_data.data[left+2]
+      left_a = image_data.data[left+3]
+      right_r = image_data.data[right]
+      right_g = image_data.data[right+1]
+      right_b = image_data.data[right+2]
+      right_a = image_data.data[right+3]
+      r = left_r - right_r;
+      g = left_g - right_g;
+      b = left_b - right_b;
+      grad[x][y] = Math.sqrt(r*r + g*g + b*b);
+      r = image_data.data[idx];
+      g = image_data.data[idx+1];
+      b = image_data.data[idx+2];
+      a = image_data.data[idx+3];
+      pixels_int[x][y]=rgb_to_unit(r,g,b,a);
+    }
+
+    var keyState = {};
+    window.addEventListener('keydown',function(e){keyState[e.keyCode || e.which] = true; },true);
+    window.addEventListener('keyup',function(e){keyState[e.keyCode || e.which] = false; },true);
+    function key_handler_loop() {
+      if (keyState[72]) remove_vertical_seam()
+      setTimeout(key_handler_loop, 1);
+    }
+    key_handler_loop();
+
+    function remove_vertical_seam() {
+      image_data = ctx.getImageData(0,0,ctx.canvas.width,ctx.canvas.height);
+      width = image_data.width;
+      height = image_data.height;
+
+      for (var i=0;i<width*height;i++){
+        x = i % width;
+        y = (i / width) | 0;
+        xx = x << 2;
+        yy = y << 2;
+        idx = xx + yy * width;
+        // get left and right pixels
+        left = (x == 0 ? idx : idx-4);
+        right = (x == (width<<2)-4 ? idx : idx+4);
+        left_r = image_data.data[left]
+        left_g = image_data.data[left+1]
+        left_b = image_data.data[left+2]
+        left_a = image_data.data[left+3]
+        right_r = image_data.data[right]
+        right_g = image_data.data[right+1]
+        right_b = image_data.data[right+2]
+        right_a = image_data.data[right+3]
+        r = left_r - right_r;
+        g = left_g - right_g;
+        b = left_b - right_b;
+        grad[x][y] = Math.sqrt(r*r + g*g + b*b);
+        r = image_data.data[idx];
+        g = image_data.data[idx+1];
+        b = image_data.data[idx+2];
+        a = image_data.data[idx+3];
+        pixels_int[x][y]=rgb_to_unit(r,g,b,a);
+      }
+
+      for (var x = 0; x < width; x++) {
+        vertical_fitness[x][0] = grad[x][0]
+      }
+
+      y1 = width*(height-1); // start from row 1
+      for (var i=0;i<y1;i++){
+        x = i % width;
+        y = ((i / width) | 0) + 1;
+        vertical_fitness[x][y] = grad[x][y]
+        if (x == 0) {
+          vertical_fitness[x][y] += Math.min(vertical_fitness[x][y-1], vertical_fitness[x+1][y-1]);
+        } else if (x == width-1) {
+          vertical_fitness[x][y] += Math.min(vertical_fitness[x][y-1], vertical_fitness[x-1][y-1]);
+        } else {
+          vertical_fitness[x][y] += Math.min(vertical_fitness[x-1][y-1], vertical_fitness[x][y-1], vertical_fitness[x+1][y-1]);
+        }
+      }
+
+      // Start the bottom of the image (where the total gradient sums are)
+      // Traverses a path of pixels by moving to next minimum gradient.
+      var best = 0
+      for (var x = 0; x < width; x++) {
+        best = (vertical_fitness[x][height-1] < vertical_fitness[best][height-1]) ? x : best
+      }
+
+      // Seam array contains the coordinates of the least cost seam
+      seam = []
+      seam.push([best,height-1])
+      for (y = height-1; y >= 0; y--) {
+        left = (best == 0) ? best : (best-1);
+        right = (best == width-1) ? best : (best+1);
+        forward = (y == 0) ? y : (y-1);
+        l = vertical_fitness[left][forward]
+        r = vertical_fitness[right][forward]
+        f = vertical_fitness[best][forward]
+        best = (l < r) ? ( (l < f) ? left : best ) : right
+        seam.push([best,y])
+      }
+      // indexing the seam is inverted. i.e seam[0] = height-1 coordinate
+
+      ctx.canvas.width = ctx.canvas.width-1
+      for (var y=0;y<height;y++){
+        x_offset = 0
+        for (var x=0;x<width;x++){
+          if (seam[height-1-y][0] == x) x_offset = -1;
+          xx = ((x+x_offset)<<2)
+          yy = (y<<2)
+          idx = xx + yy * width;
+          rgba = uint_to_rgb(pixels_int[x][y]);
+          image_data.data[idx] = rgba[0];
+          image_data.data[idx+1] = rgba[1];
+          image_data.data[idx+2] = rgba[2];
+          image_data.data[idx+3] = rgba[3];
+        }
+      }
+
+      ctx.putImageData(image_data,0,0);
+
+    }
+  }
+</script>
+</html>
