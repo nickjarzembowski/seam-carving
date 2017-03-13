@@ -301,26 +301,19 @@
         r = left_r - right_r;
         g = left_g - right_g;
         b = left_b - right_b;
-        grad[x][y] = Math.sqrt(r*r + g*g + b*b); // contains horizotnal gradient image
-      }
-
-      // init first row of fitnesses. its just the gradient pixel
-      for (var x = 0; x < width; x++) {
-        vertical_fitness[x][0] = grad[x][0]
-      }
-
-      // compute the fitness of all possible vertical seams by summing minimum previous gradients
-      y1 = (width-1)*(height-1); // start from row 1
-      for (var i=0;i<y1;i++){
-        x = i % width;
-        y = ((i / width) | 0) + 1;
-        vertical_fitness[x][y] = grad[x][y]
-        if (x == 0) {
-          vertical_fitness[x][y] += Math.min(vertical_fitness[x][y-1], vertical_fitness[x+1][y-1]);
-        } else if (x == width-1) {
-          vertical_fitness[x][y] += Math.min(vertical_fitness[x][y-1], vertical_fitness[x-1][y-1]);
+        distance = Math.sqrt(r*r + g*g + b*b); // compute the distance between the pixels
+        // compute vertical seam if the first row has been computed
+        if (y>1) {
+          vertical_fitness[x][y] = distance
+          if (x == 0) {
+            vertical_fitness[x][y] += Math.min(vertical_fitness[x][y-1], vertical_fitness[x+1][y-1]);
+          } else if (x == width-1) {
+            vertical_fitness[x][y] += Math.min(vertical_fitness[x][y-1], vertical_fitness[x-1][y-1]);
+          } else {
+            vertical_fitness[x][y] += Math.min(vertical_fitness[x-1][y-1], vertical_fitness[x][y-1], vertical_fitness[x+1][y-1]);
+          }
         } else {
-          vertical_fitness[x][y] += Math.min(vertical_fitness[x-1][y-1], vertical_fitness[x][y-1], vertical_fitness[x+1][y-1]);
+          vertical_fitness[x][y] = distance
         }
       }
 
